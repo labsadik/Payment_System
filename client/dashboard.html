@@ -1,0 +1,938 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - PaySystem</title>
+    <link rel="stylesheet" href="/client/style.css">
+</head>
+<body class="dashboard-page">
+    
+    <!-- ================= HEADER ================= -->
+    <header class="dashboard-header">
+        <div class="header-left">
+            <div class="brand">
+                <span class="brand-icon">💳</span>
+                <span class="brand-text">PaySystem</span>
+            </div>
+        </div>
+        
+        <div class="header-right">
+            <div class="user-menu" id="userMenu">
+                <img id="headerAvatar" src="https://via.placeholder.com/40x40?text=User" alt="Avatar" class="avatar-small">
+                <span id="headerUserName" class="user-name">Loading...</span>
+                
+                <div class="dropdown-menu" id="dropdownMenu">
+                    <a href="#" onclick="scrollToSection('profileSection')">👤 My Profile</a>
+                    <a href="#" onclick="logoutUser()">🚪 Logout</a>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- ================= MAIN CONTENT ================= -->
+    <main class="dashboard-main">
+        
+        <!-- ===== BALANCE CARD ===== -->
+        <section class="card balance-card" id="balanceCard">
+            <div class="balance-header">
+                <h3>Total Balance</h3>
+                <span class="balance-label">Available Funds</span>
+            </div>
+            <div class="balance-amount" id="displayBalance">$0.00</div>
+            <div class="pay-id-display">
+                <strong>Your Pay ID:</strong>
+                <code id="displayPayId">Not Set</code>
+                <button class="btn-icon" onclick="copyToClipboard(document.getElementById('displayPayId').textContent)" title="Copy Pay ID">📋</button>
+            </div>
+        </section>
+
+        <!-- ===== QUICK ACTIONS ===== -->
+        <section class="actions-grid">
+            <button class="action-card" onclick="openSendMoneyModal()">
+                <div class="action-icon send">💸</div>
+                <span>Send Money</span>
+            </button>
+            
+            <button class="action-card" onclick="showModal('qrModal'); generateQR()">
+                <div class="action-icon qr">📱</div>
+                <span>My QR Code</span>
+            </button>
+            
+            <button class="action-card" onclick="showModal('pinModal')">
+                <div class="action-icon pin">🔐</div>
+                <span>Set PIN</span>
+            </button>
+            
+            <button class="action-card" onclick="scrollToSection('profileSection')">
+                <div class="action-icon profile">👤</div>
+                <span>Profile</span>
+            </button>
+        </section>
+
+        <!-- ============================================================ -->
+        <!-- ⭐ PROFILE SECTION - Smart Toggle: Setup OR View Details     -->
+        <!-- ============================================================ -->
+        <section class="card profile-section" id="profileSection">
+            <div class="section-header">
+                <h3><span id="profileIcon">👤</span> <span id="profileTitle">Profile</span></h3>
+            </div>
+
+            <!-- 🔴 CASE 1: Profile NOT Setup Yet → Show Setup Form -->
+            <div id="profileNotSetup" style="display: none;">
+                <div class="setup-prompt">
+                    <div class="setup-icon">⚠️</div>
+                    <h4>Complete Your Profile</h4>
+                    <p>You need to set up your profile to use all features and receive your unique Pay ID.</p>
+                </div>
+
+                <form id="setupProfileForm" class="profile-form">
+                    <div class="form-row">
+                        <div class="form-group flex-1">
+                            <label for="setupName">Full Name *</label>
+                            <input type="text" id="setupName" placeholder="Enter your full name" required>
+                        </div>
+                        <div class="form-group flex-1">
+                            <label for="setupAge">Age *</label>
+                            <input type="number" id="setupAge" placeholder="Your age" min="18" max="120" required>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="setupImage">Profile Photo (Optional)</label>
+                        <div class="file-upload-wrapper">
+                            <input type="file" id="setupImage" accept="image/*" onchange="previewSetupImage(this)">
+                            <div class="upload-preview-area" id="setupPreviewArea">
+                                <span class="upload-placeholder">📷 Click to upload photo</span>
+                                <img id="setupPreviewImg" src="" alt="Preview" style="display: none;">
+                            </div>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn-primary btn-block">
+                        <span>✨ Create My Profile</span>
+                    </button>
+                </form>
+            </div>
+
+            <!-- 🟢 CASE 2: Profile Already Setup → Show Details + Edit Option -->
+            <div id="profileDetails" style="display: none;">
+                <div class="profile-details-grid">
+                    <!-- Avatar -->
+                    <div class="detail-avatar-section">
+                        <img id="detailAvatar" src="" alt="Profile" class="detail-avatar">
+                        <label class="change-avatar-btn">
+                            📷 Change
+                            <input type="file" id="editAvatarInput" accept="image/*" style="display: none;" onchange="handleAvatarChange(this)">
+                        </label>
+                    </div>
+
+                    <!-- Info Grid -->
+                    <div class="detail-info-grid">
+                        <div class="info-item">
+                            <label>Name</label>
+                            <div class="info-value" id="detailName">-</div>
+                        </div>
+                        <div class="info-item">
+                            <label>Email</label>
+                            <div class="info-value" id="detailEmail">-</div>
+                        </div>
+                        <div class="info-item">
+                            <label>Age</label>
+                            <div class="info-value" id="detailAge">-</div>
+                        </div>
+                        <div class="info-item">
+                            <label>Pay ID</label>
+                            <div class="info-value pay-id-value" id="detailPayId">-</div>
+                        </div>
+                        <div class="info-item">
+                            <label>PIN Status</label>
+                            <div class="info-value" id="detailPinStatus">
+                                <span class="badge badge-warning">Not Set</span>
+                            </div>
+                        </div>
+                        <div class="info-item">
+                            <label>Member Since</label>
+                            <div class="info-value" id="detailJoined">-</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="profile-actions">
+                    <button class="btn-secondary" onclick="showModal('editProfileModal'); populateEditForm()">
+                        ✏️ Edit Profile
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- ============================================================ -->
+        <!-- ⭐ TRANSACTION HISTORY - SEPARATE SENT & RECEIVED TABS       -->
+        <!-- ============================================================ -->
+        <section class="card history-card">
+            <div class="history-header">
+                <h3>📜 Transaction History</h3>
+                <button class="btn-secondary btn-sm" onclick="loadAllTransactions()">🔄 Refresh</button>
+            </div>
+
+            <!-- Tab Buttons -->
+            <div class="history-tabs">
+                <button class="tab-btn active" id="tabAll" onclick="switchHistoryTab('all')">
+                    📋 All Transactions
+                    <span class="tab-count" id="countAll">0</span>
+                </button>
+                <button class="tab-btn" id="tabSent" onclick="switchHistoryTab('sent')">
+                    💸 Sent
+                    <span class="tab-count" id="countSent">0</span>
+                </button>
+                <button class="tab-btn" id="tabReceived" onclick="switchHistoryTab('received')">
+                    📥 Received
+                    <span class="tab-count" id="countReceived">0</span>
+                </button>
+            </div>
+
+            <!-- Transaction List Container -->
+            <div id="transactionList" class="transaction-list">
+                <div class="loading-spinner">Loading transactions...</div>
+            </div>
+
+            <!-- Summary Stats -->
+            <div class="history-summary" id="historySummary" style="display: none;">
+                <div class="summary-item">
+                    <span class="summary-label">Total Sent:</span>
+                    <span class="summary-value sent" id="totalSent">$0.00</span>
+                </div>
+                <div class="summary-item">
+                    <span class="summary-label">Total Received:</span>
+                    <span class="summary-value received" id="totalReceived">$0.00</span>
+                </div>
+                <div class="summary-item">
+                    <span class="summary-label">Net Balance:</span>
+                    <span class="summary-value net" id="netBalance">$0.00</span>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- ================= MODALS ================= -->
+
+    <!-- Send Money Modal -->
+    <div id="sendMoneyModal" class="modal-overlay" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>💸 Send Money</h2>
+                <button class="modal-close" onclick="hideModal('sendMoneyModal')">&times;</button>
+            </div>
+            
+            <form id="sendMoneyForm" class="modal-body">
+                <div class="form-group">
+                    <label for="recipientPayId">Recipient Pay ID</label>
+                    <input type="text" id="recipientPayId" placeholder="e.g., 1234567890@pay" required>
+                    <small class="form-hint">Enter the recipient's 10-digit Pay ID</small>
+                </div>
+
+                <div class="form-group">
+                    <label for="sendAmount">Amount ($)</label>
+                    <input type="number" id="sendAmount" placeholder="0.00" min="1" step="0.01" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="sendPin">Your Security PIN</label>
+                    <input type="password" id="sendPin" placeholder="Enter 4-digit PIN" maxlength="4" pattern="[0-9]{4}" required>
+                </div>
+
+                <div class="modal-actions">
+                    <button type="button" class="btn-secondary" onclick="hideModal('sendMoneyModal')">Cancel</button>
+                    <button type="submit" class="btn-primary"><span>Send Money</span></button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Set PIN Modal -->
+    <div id="pinModal" class="modal-overlay" style="display: none;">
+        <div class="modal-content modal-sm">
+            <div class="modal-header">
+                <h2>🔐 Set Security PIN</h2>
+                <button class="modal-close" onclick="hideModal('pinModal')">&times;</button>
+            </div>
+            
+            <form id="setPinForm" class="modal-body">
+                <div class="form-group">
+                    <label for="newPin">New 4-Digit PIN</label>
+                    <input type="password" id="newPin" placeholder="••••" maxlength="4" pattern="[0-9]{4}" required>
+                    <small class="form-hint">Required for sending money</small>
+                </div>
+
+                <div class="modal-actions">
+                    <button type="button" class="btn-secondary" onclick="hideModal('pinModal')">Cancel</button>
+                    <button type="submit" class="btn-primary">Set PIN</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Edit Profile Modal (for already-setup users) -->
+    <div id="editProfileModal" class="modal-overlay" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>✏️ Edit Profile</h2>
+                <button class="modal-close" onclick="hideModal('editProfileModal')">&times;</button>
+            </div>
+            
+            <form id="editProfileForm" class="modal-body">
+                <input type="hidden" id="editUserId">
+
+                <div class="form-group">
+                    <label for="editName">Full Name</label>
+                    <input type="text" id="editName" placeholder="Your Name" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="editAge">Age</label>
+                    <input type="number" id="editAge" placeholder="Your Age" min="18" max="120" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="editProfileImage">New Profile Image (Optional)</label>
+                    <input type="file" id="editProfileImage" accept="image/*">
+                </div>
+
+                <div class="modal-actions">
+                    <button type="button" class="btn-secondary" onclick="hideModal('editProfileModal')">Cancel</button>
+                    <button type="submit" class="btn-primary">Save Changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- QR Code Modal -->
+    <div id="qrModal" class="modal-overlay" style="display: none;">
+        <div class="modal-content modal-sm qr-modal-content">
+            <div class="modal-header">
+                <h2>📱 Your Payment QR Code</h2>
+                <button class="modal-close" onclick="hideModal('qrModal')">&times;</button>
+            </div>
+            
+            <div class="modal-body text-center">
+                <div class="qr-code-container">
+                    <img id="qrCodeImage" src="" alt="QR Code" class="qr-image">
+                </div>
+                <p class="qr-pay-id"><strong>Scan to pay:</strong></p>
+                <code id="qrPayIdDisplay" class="qr-pay-id-code"></code>
+                <p class="qr-instruction">Share this QR code to receive payments instantly!</p>
+                
+                <div class="modal-actions">
+                    <button type="button" class="btn-secondary" onclick="hideModal('qrModal')">Close</button>
+                    <button type="button" class="btn-primary" onclick="downloadQR()">⬇️ Download QR</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Container -->
+    <div id="toastContainer" class="toast-container"></div>
+
+    <script src="user.js"></script>
+    <script>
+        /**
+         * ============================================
+         * DASHBOARD APPLICATION LOGIC - ENHANCED v2.0
+         * Features:
+         * - Smart Profile Toggle (Setup vs View)
+         * - Separate Sent/Received History Tabs
+         * - Improved UX & Visual Hierarchy
+         * ============================================
+         */
+
+        let currentUserData = null;
+        let allTransactions = [];
+        let currentHistoryTab = 'all'; // 'all', 'sent', or 'received'
+
+        // ================= INITIALIZATION =================
+        
+        document.addEventListener('DOMContentLoaded', () => {
+            initializeDashboard();
+            setupEventListeners();
+        });
+
+        async function initializeDashboard() {
+            showNotification('Loading your dashboard...', 'info', 2000);
+            
+            currentUserData = await getCurrentUser();
+
+            if (!currentUserData) {
+                window.location.href = 'index.html';
+                return;
+            }
+
+            updateDashboardUI(currentUserData);
+            determineProfileState(currentUserData); // ⭐ NEW: Decide Setup vs View
+            await loadAllTransactions();           // ⭐ NEW: Load all transactions
+
+            showNotification(`Welcome back, ${currentUserData.name || currentUserData.email}!`, 'success', 3000);
+        }
+
+        function setupEventListeners() {
+            // Send Money Form
+            document.getElementById('sendMoneyForm').addEventListener('submit', handleSendMoney);
+
+            // Set PIN Form
+            document.getElementById('setPinForm').addEventListener('submit', handleSetPIN);
+
+            // ⭐ Setup Profile Form (NEW)
+            document.getElementById('setupProfileForm').addEventListener('submit', handleSetupProfile);
+
+            // Edit Profile Form (for existing profiles)
+            document.getElementById('editProfileForm').addEventListener('submit', handleEditProfile);
+
+            // Close modals on outside click
+            document.querySelectorAll('.modal-overlay').forEach(modal => {
+                modal.addEventListener('click', (e) => {
+                    if (e.target === modal) modal.style.display = 'none';
+                });
+            });
+
+            // Dropdown menu
+            document.getElementById('userMenu').addEventListener('click', (e) => {
+                if (!e.target.closest('.dropdown-menu')) {
+                    document.getElementById('dropdownMenu').classList.toggle('show');
+                }
+            });
+            document.addEventListener('click', (e) => {
+                if (!e.target.closest('#userMenu')) {
+                    document.getElementById('dropdownMenu').classList.remove('show');
+                }
+            });
+        }
+
+        // ================= PROFILE LOGIC - SMART TOGGLE =================
+
+        /**
+         * ⭐ Determine whether to show SETUP FORM or PROFILE DETAILS
+         * @param {Object} userData - Current user data
+         */
+        function determineProfileState(userData) {
+            const setupDiv = document.getElementById('profileNotSetup');
+            const detailsDiv = document.getElementById('profileDetails');
+
+            // Check if profile is complete (has name AND payId)
+            const isProfileComplete = userData.name && userData.payId;
+
+            if (isProfileComplete) {
+                // 🟢 SHOW: Profile Details
+                setupDiv.style.display = 'none';
+                detailsDiv.style.display = 'block';
+                populateProfileDetails(userData);
+                
+                document.getElementById('profileIcon').textContent = '✅';
+                document.getElementById('profileTitle').textContent = 'My Profile';
+            } else {
+                // 🔴 SHOW: Setup Form
+                setupDiv.style.display = 'block';
+                detailsDiv.style.display = 'none';
+                
+                document.getElementById('profileIcon').textContent = '⚠️';
+                document.getElementById('profileTitle').textContent = 'Setup Required';
+
+                // Auto-focus on first input after a short delay
+                setTimeout(() => document.getElementById('setupName').focus(), 500);
+            }
+        }
+
+        /**
+         * Populate profile details view
+         */
+        function populateProfileDetails(userData) {
+            // Avatar
+            if (userData.profileImage) {
+                const avatarUrl = userData.profileImage.startsWith('/') 
+                    ? 'http://localhost:5000' + userData.profileImage 
+                    : userData.profileImage;
+                document.getElementById('detailAvatar').src = avatarUrl;
+            } else {
+                document.getElementById('detailAvatar').src = 'https://via.placeholder.com/150x150?text=' + (userData.name ? userData.name[0] : '?');
+            }
+
+            // Info fields
+            document.getElementById('detailName').textContent = userData.name || '-';
+            document.getElementById('detailEmail').textContent = userData.email || '-';
+            document.getElementById('detailAge').textContent = userData.age ? userData.age + ' years' : '-';
+            document.getElementById('detailPayId').textContent = userData.payId || '-';
+
+            // PIN Status Badge
+            const pinStatusEl = document.getElementById('detailPinStatus');
+            if (userData.pin) {
+                pinStatusEl.innerHTML = '<span class="badge badge-success">✅ Active</span>';
+            } else {
+                pinStatusEl.innerHTML = '<span class="badge badge-warning">⚠️ Not Set</span>';
+            }
+
+            // Join date
+            if (userData.createdAt) {
+                document.getElementById('detailJoined').textContent = formatDate(userData.createdAt);
+            }
+        }
+
+        /**
+         * Handle Setup Profile Form Submission (First-time setup)
+         */
+        async function handleSetupProfile(e) {
+            e.preventDefault();
+
+            const name = document.getElementById('setupName').value.trim();
+            const age = document.getElementById('setupAge').value;
+            const imageFile = document.getElementById('setupImage').files[0];
+
+            if (!name || !age) {
+                showNotification('Please fill in all required fields', 'error');
+                return;
+            }
+
+            const submitBtn = e.target.querySelector('button[type="submit"]');
+            submitBtn.innerHTML = '<span>Creating Profile...</span>';
+            submitBtn.disabled = true;
+
+            try {
+                const result = await setupProfile(name, age, imageFile);
+
+                if (result.payId || result.message) {
+                    showNotification('✅ Profile created successfully! Your Pay ID: ' + (result.payId || 'generated'), 'success', 5000);
+                    
+                    // Refresh user data and switch to details view
+                    currentUserData = await getCurrentUser();
+                    updateDashboardUI(currentUserData);
+                    determineProfileState(currentUserData);
+                    
+                    // Clear form
+                    e.target.reset();
+                    document.getElementById('setupPreviewImg').style.display = 'none';
+                    document.querySelector('.upload-placeholder').style.display = 'block';
+                } else {
+                    showNotification('❌ ' + (result.message || 'Failed to create profile'), 'error');
+                }
+            } catch (error) {
+                showNotification('❌ Error creating profile', 'error');
+            } finally {
+                submitBtn.innerHTML = '<span>✨ Create My Profile</span>';
+                submitBtn.disabled = false;
+            }
+        }
+
+        /**
+         * Handle Edit Profile Form Submission (Update existing)
+         */
+        async function handleEditProfile(e) {
+            e.preventDefault();
+
+            const name = document.getElementById('editName').value.trim();
+            const age = document.getElementById('editAge').value;
+            const imageFile = document.getElementById('editProfileImage').files[0];
+
+            if (!name || !age) {
+                showNotification('Please fill in all required fields', 'error');
+                return;
+            }
+
+            const submitBtn = e.target.querySelector('button[type="submit"]');
+            submitBtn.textContent = 'Saving...';
+            submitBtn.disabled = true;
+
+            try {
+                const result = await setupProfile(name, age, imageFile);
+
+                if (result.payId || result.message) {
+                    showNotification('✅ Profile updated successfully!', 'success', 3000);
+                    hideModal('editProfileModal');
+                    
+                    // Refresh
+                    currentUserData = await getCurrentUser();
+                    updateDashboardUI(currentUserData);
+                    populateProfileDetails(currentUserData);
+                } else {
+                    showNotification('❌ ' + (result.message || 'Failed to update'), 'error');
+                }
+            } catch (error) {
+                showNotification('❌ Error updating profile', 'error');
+            } finally {
+                submitBtn.textContent = 'Save Changes';
+                submitBtn.disabled = false;
+            }
+        }
+
+        /**
+         * Populate edit form with current values
+         */
+        function populateEditForm() {
+            if (!currentUserData) return;
+
+            document.getElementById('editName').value = currentUserData.name || '';
+            document.getElementById('editAge').value = currentUserData.age || '';
+        }
+
+        /**
+         * Preview image during setup
+         */
+        function previewSetupImage(input) {
+            if (input.files && input.files[0]) {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    const img = document.getElementById('setupPreviewImg');
+                    img.src = e.target.result;
+                    img.style.display = 'block';
+                    document.querySelector('.upload-placeholder').style.display = 'none';
+                };
+                reader.readAsDataURL(input.files[0]);
+            }
+        }
+
+        /**
+         * Handle avatar change from detail view
+         */
+        async function handleAvatarChange(input) {
+            if (input.files && input.files[0]) {
+                const file = input.files[0];
+                
+                // Quick preview
+                const reader = new FileReader();
+                reader.onload = async (e) => {
+                    document.getElementById('detailAvatar').src = e.target.result;
+                    
+                    // Upload to server
+                    showNotification('Uploading new avatar...', 'info', 2000);
+                    const result = await setupProfile(
+                        currentUserData.name, 
+                        currentUserData.age, 
+                        file
+                    );
+                    
+                    if (result.payId || result.message) {
+                        showNotification('✅ Avatar updated!', 'success', 2000);
+                        currentUserData = await getCurrentUser();
+                    } else {
+                        showNotification('❌ Failed to upload avatar', 'error');
+                    }
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+
+        // ================= TRANSACTION HISTORY - TABS =================
+
+        /**
+         * Load all transactions and separate into tabs
+         */
+        async function loadAllTransactions() {
+            const container = document.getElementById('transactionList');
+            container.innerHTML = '<div class="loading-spinner">Loading transactions...</div>';
+
+            allTransactions = await getTransactionHistory();
+
+            // Update counts
+            const sentCount = filterSentTransactions(allTransactions).length;
+            const receivedCount = filterReceivedTransactions(allTransactions).length;
+
+            document.getElementById('countAll').textContent = allTransactions.length;
+            document.getElementById('countSent').textContent = sentCount;
+            document.getElementById('countReceived').textContent = receivedCount;
+
+            // Calculate summary stats
+            updateTransactionSummary(allTransactions);
+
+            // Render current tab
+            renderTransactionList(currentHistoryTab);
+        }
+
+        /**
+         * Switch between All/Sent/Received tabs
+         */
+        function switchHistoryTab(tab) {
+            currentHistoryTab = tab;
+
+            // Update tab button states
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            document.getElementById('tab' + tab.charAt(0).toUpperCase() + tab.slice(1)).classList.add('active');
+
+            // Re-render list
+            renderTransactionList(tab);
+        }
+
+        /**
+         * Render transaction list based on active tab
+         */
+        function renderTransactionList(filter) {
+            const container = document.getElementById('transactionList');
+            let transactionsToShow = [];
+
+            switch(filter) {
+                case 'sent':
+                    transactionsToShow = filterSentTransactions(allTransactions);
+                    break;
+                case 'received':
+                    transactionsToShow = filterReceivedTransactions(allTransactions);
+                    break;
+                case 'all':
+                default:
+                    transactionsToShow = allTransactions;
+                    break;
+            }
+
+            if (!transactionsToShow || transactionsToShow.length === 0) {
+                const emptyMessages = {
+                    all: 'No transactions yet',
+                    sent: 'No sent transactions',
+                    received: 'No received transactions'
+                };
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-icon">📭</div>
+                        <p>${emptyMessages[filter]}</p>
+                        <small>${filter === 'all' ? 'Your payment history will appear here' : 
+                               filter === 'sent' ? 'Payments you\'ve sent will appear here' : 
+                               'Payments you\'ve received will appear here'}</small>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = transactionsToShow.map(tx => createTransactionHTML(tx)).join('');
+        }
+
+        /**
+         * Create HTML for single transaction item
+         */
+        function createTransactionHTML(tx) {
+            const isSent = tx.type === 'sent';
+            const otherParty = isSent ? tx.to : tx.from;
+            const amountClass = isSent ? 'amount-sent' : 'amount-received';
+            const amountPrefix = isSent ? '-' : '+';
+            const icon = isSent ? '↑' : '↓';
+            const label = isSent ? 'Sent to' : 'Received from';
+
+            return `
+                <div class="transaction-item ${tx.type}">
+                    <div class="tx-icon ${tx.type}">${icon}</div>
+                    <div class="tx-details">
+                        <div class="tx-title">${label}</div>
+                        <div class="tx-party">${otherParty}</div>
+                        <div class="tx-date">${formatDate(tx.date)}</div>
+                    </div>
+                    <div class="tx-amount ${amountClass}">
+                        ${amountPrefix}${formatCurrency(tx.amount)}
+                    </div>
+                </div>
+            `;
+        }
+
+        /**
+         * Calculate and display summary statistics
+         */
+        function updateTransactionSummary(transactions) {
+            if (!transactions || transactions.length === 0) {
+                document.getElementById('historySummary').style.display = 'none';
+                return;
+            }
+
+            let totalSent = 0;
+            let totalReceived = 0;
+
+            transactions.forEach(tx => {
+                if (tx.type === 'sent') {
+                    totalSent += Number(tx.amount) || 0;
+                } else if (tx.type === 'received') {
+                    totalReceived += Number(tx.amount) || 0;
+                }
+            });
+
+            const netBalance = totalReceived - totalSent;
+
+            document.getElementById('totalSent').textContent = formatCurrency(totalSent);
+            document.getElementById('totalReceived').textContent = formatCurrency(totalReceived);
+            document.getElementById('netBalance').textContent = formatCurrency(netBalance);
+            
+            // Color code net balance
+            const netEl = document.getElementById('netBalance');
+            netEl.className = 'summary-value net ' + (netBalance >= 0 ? 'positive' : 'negative');
+
+            document.getElementById('historySummary').style.display = 'grid';
+        }
+
+        // ================= OTHER HANDLERS =================
+
+        /** Update main dashboard UI elements */
+        function updateDashboardUI(userData) {
+            // Header
+            document.getElementById('headerUserName').textContent = userData.name || userData.email || 'User';
+            if (userData.profileImage) {
+                const url = userData.profileImage.startsWith('/') ? 'http://localhost:5000' + userData.profileImage : userData.profileImage;
+                document.getElementById('headerAvatar').src = url;
+            }
+
+            // Balance Card
+            document.getElementById('displayBalance').textContent = formatCurrency(userData.balance || 0);
+            document.getElementById('displayPayId').textContent = userData.payId || 'Not Set';
+        }
+
+        /** Handle Send Money */
+        async function handleSendMoney(e) {
+            e.preventDefault();
+
+            const toPayId = document.getElementById('recipientPayId').value.trim();
+            const amount = document.getElementById('sendAmount').value;
+            const pin = document.getElementById('sendPin').value;
+
+            if (!toPayId || !amount || !pin) {
+                showNotification('Please fill in all fields', 'error');
+                return;
+            }
+            if (pin.length !== 4 || isNaN(pin)) {
+                showNotification('PIN must be exactly 4 digits', 'error');
+                return;
+            }
+            if (Number(amount) <= 0) {
+                showNotification('Amount must be greater than 0', 'error');
+                return;
+            }
+
+            const confirmMsg = `Send $${Number(amount).toFixed(2)} to:\n${toPayId}\n\nAre you sure?`;
+            if (!confirm(confirmMsg)) return;
+
+            const submitBtn = e.target.querySelector('button[type="submit"]');
+            submitBtn.innerHTML = '<span>Sending...</span>';
+            submitBtn.disabled = true;
+
+            try {
+                showNotification('Verifying recipient...', 'info', 2000);
+                const recipient = await lookupUserByPayId(toPayId);
+
+                if (!recipient.name && !recipient.payId) {
+                    showNotification('Recipient not found! Check the Pay ID.', 'error');
+                    return;
+                }
+
+                const result = await sendMoney(toPayId, amount, pin);
+
+                if (result.message === 'Payment success') {
+                    showNotification(`✅ Successfully sent $${Number(amount).toFixed(2)} to ${recipient.name}!`, 'success', 5000);
+                    hideModal('sendMoneyModal');
+                    e.target.reset();
+                    await loadAllTransactions(); // Refresh history
+                    currentUserData = await getCurrentUser(); // Refresh balance
+                    updateDashboardUI(currentUserData);
+                } else {
+                    showNotification('❌ ' + (result.message || 'Payment failed'), 'error');
+                }
+            } catch (error) {
+                showNotification('❌ Transaction failed. Please try again.', 'error');
+            } finally {
+                submitBtn.innerHTML = '<span>Send Money</span>';
+                submitBtn.disabled = false;
+            }
+        }
+
+        /** Handle Set PIN */
+        async function handleSetPIN(e) {
+            e.preventDefault();
+            const pin = document.getElementById('newPin').value;
+
+            if (pin.length !== 4 || isNaN(pin)) {
+                showNotification('PIN must be exactly 4 digits', 'error');
+                return;
+            }
+
+            const submitBtn = e.target.querySelector('button[type="submit"]');
+            submitBtn.textContent = 'Setting...';
+            submitBtn.disabled = true;
+
+            try {
+                const result = await setSecurityPin(pin);
+                if (result.message === 'PIN set') {
+                    showNotification('✅ Security PIN set successfully!', 'success', 3000);
+                    hideModal('pinModal');
+                    e.target.reset();
+                    // Update PIN status in profile
+                    if (currentUserData) {
+                        currentUserData.pin = true;
+                        populateProfileDetails(currentUserData);
+                    }
+                } else {
+                    showNotification('❌ ' + (result.message || 'Failed to set PIN'), 'error');
+                }
+            } catch (error) {
+                showNotification('❌ Error setting PIN', 'error');
+            } finally {
+                submitBtn.textContent = 'Set PIN';
+                submitBtn.disabled = false;
+            }
+        }
+
+        /** Open Send Money Modal (with PIN check) */
+        function openSendMoneyModal() {
+            if (currentUserData && !currentUserData.pin) {
+                showNotification('⚠️ Please set your Security PIN first!', 'warning', 4000);
+                setTimeout(() => showModal('pinModal'), 1000);
+                return;
+            }
+            showModal('sendMoneyModal');
+        }
+
+        /** Generate QR Code */
+        async function generateQR() {
+            if (!currentUserData || !currentUserData.payId) {
+                showNotification('Please set up your profile first', 'warning');
+                return;
+            }
+
+            document.getElementById('qrCodeImage').src = '';
+            document.getElementById('qrPayIdDisplay').textContent = currentUserData.payId;
+            showNotification('Generating QR code...', 'info', 2000);
+
+            const qrDataUrl = await getQRCode();
+            if (qrDataUrl) {
+                document.getElementById('qrCodeImage').src = qrDataUrl;
+            } else {
+                showNotification('Failed to generate QR code', 'error');
+            }
+        }
+
+        /** Download QR Code */
+        function downloadQR() {
+            const qrImg = document.getElementById('qrCodeImage');
+            if (qrImg.src) {
+                const link = document.createElement('a');
+                link.download = 'qrcode-' + (currentUserData?.payId || 'payment') + '.png';
+                link.href = qrImg.src;
+                link.click();
+                showNotification('QR Code downloaded!', 'success', 2000);
+            }
+        }
+
+        /** Scroll to section */
+        function scrollToSection(sectionId) {
+            const element = document.getElementById(sectionId);
+            if (element) {
+                element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+        }
+
+        /** Modal helpers */
+        function showModal(modalId) {
+            const modal = document.getElementById(modalId);
+            if (modal) {
+                modal.style.display = 'flex';
+                setTimeout(() => modal.querySelector('.modal-content')?.classList.add('show'), 10);
+            }
+        }
+
+        function hideModal(modalId) {
+            const modal = document.getElementById(modalId);
+            if (modal) {
+                modal.querySelector('.modal-content')?.classList.remove('show');
+                setTimeout(() => modal.style.display = 'none', 300);
+            }
+        }
+
+    </script>
+</body>
+</html>

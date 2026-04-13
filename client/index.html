@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Payment System - Login</title>
+    <link rel="stylesheet" href="/client/style.css">
+</head>
+<body class="auth-page">
+    <div class="auth-container">
+        <div class="auth-card">
+
+
+            <!-- Login Form -->
+            <form id="loginForm" class="auth-form active">
+                <h2>Welcome Back</h2>
+                <div class="input-group">
+                    <label for="loginEmail">Email Address</label>
+                    <input 
+                        type="email" 
+                        id="loginEmail" 
+                        placeholder="Enter your email"
+                        required
+                        autocomplete="email"
+                    >
+                </div>
+                <div class="input-group">
+                    <label for="loginPassword">Password</label>
+                    <input 
+                        type="password" 
+                        id="loginPassword" 
+                        placeholder="Enter your password"
+                        required
+                        autocomplete="current-password"
+                    >
+                </div>
+                <button type="submit" class="btn-primary btn-block">
+                    <span>Login</span>
+                    <div class="btn-loader"></div>
+                </button>
+                <p class="switch-form">
+                    Don't have an account? 
+                    <a href="#" onclick="toggleAuthForm('register')">Register Now</a>
+                </p>
+            </form>
+
+            <!-- Register Form -->
+            <form id="registerForm" class="auth-form">
+                <h2>Create Account</h2>
+                <div class="input-group">
+                    <label for="regEmail">Email Address</label>
+                    <input 
+                        type="email" 
+                        id="regEmail" 
+                        placeholder="Enter your email"
+                        required
+                        autocomplete="email"
+                    >
+                </div>
+                <div class="input-group">
+                    <label for="regPassword">Password</label>
+                    <input 
+                        type="password" 
+                        id="regPassword" 
+                        placeholder="Create a password (min 6 chars)"
+                        required
+                        minlength="6"
+                        autocomplete="new-password"
+                    >
+                </div>
+                <button type="submit" class="btn-primary btn-block">
+                    <span>Create Account</span>
+                    <div class="btn-loader"></div>
+                </button>
+                <p class="switch-form">
+                    Already have an account? 
+                    <a href="#" onclick="toggleAuthForm('login')">Login Here</a>
+                </p>
+            </form>
+
+            <!-- Message Display -->
+            <div id="authMessage" class="message-box hidden"></div>
+        </div>
+
+        <!-- Footer -->
+        <footer class="auth-footer">
+            <p>&copy; 2024 PaySystem. Secure Payment Platform</p>
+        </footer>
+    </div>
+
+    <script src="user.js"></script>
+    <script>
+        // Check if user is already logged in
+        document.addEventListener('DOMContentLoaded', () => {
+            const token = localStorage.getItem('token');
+            if (token) {
+                // Verify token is still valid
+                getCurrentUser().then(user => {
+                    if (user) {
+                        window.location.href = 'dashboard.html';
+                    } else {
+                        localStorage.removeItem('token');
+                    }
+                });
+            }
+        });
+
+        // Toggle between Login and Register forms
+        function toggleAuthForm(formType) {
+            const loginForm = document.getElementById('loginForm');
+            const registerForm = document.getElementById('registerForm');
+            
+            if (formType === 'register') {
+                loginForm.classList.remove('active');
+                registerForm.classList.add('active');
+            } else {
+                registerForm.classList.remove('active');
+                loginForm.classList.add('active');
+            }
+            
+            hideMessage();
+        }
+
+        // Show message
+        function showMessage(message, type = 'error') {
+            const messageBox = document.getElementById('authMessage');
+            messageBox.textContent = message;
+            messageBox.className = `message-box ${type}`;
+            
+            setTimeout(() => {
+                hideMessage();
+            }, 5000);
+        }
+
+        // Hide message
+        function hideMessage() {
+            const messageBox = document.getElementById('authMessage');
+            messageBox.className = 'message-box hidden';
+        }
+
+        // Handle Login Form Submit
+        document.getElementById('loginForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const email = document.getElementById('loginEmail').value.trim();
+            const password = document.getElementById('loginPassword').value;
+            const submitBtn = e.target.querySelector('button[type="submit"]');
+            
+            // Disable button and show loading
+            setButtonLoading(submitBtn, true);
+
+            try {
+                const result = await loginUser(email, password);
+                
+                if (result.token) {
+                    showMessage('✅ Login successful! Redirecting...', 'success');
+                    
+                    // Redirect to dashboard after short delay
+                    setTimeout(() => {
+                        window.location.href = 'dashboard.html';
+                    }, 1000);
+                } else {
+                    showMessage(result.message || '❌ Login failed. Please check your credentials.', 'error');
+                }
+            } catch (error) {
+                showMessage('❌ Network error. Please try again.', 'error');
+            } finally {
+                setButtonLoading(submitBtn, false);
+            }
+        });
+
+        // Handle Register Form Submit
+        document.getElementById('registerForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const email = document.getElementById('regEmail').value.trim();
+            const password = document.getElementById('regPassword').value;
+            const submitBtn = e.target.querySelector('button[type="submit"]');
+
+            // Validate password length
+            if (password.length < 6) {
+                showMessage('❌ Password must be at least 6 characters long.', 'error');
+                return;
+            }
+
+            // Disable button and show loading
+            setButtonLoading(submitBtn, true);
+
+            try {
+                const result = await registerUser(email, password);
+                
+                if (result.message === 'Registered') {
+                    showMessage('✅ Registration successful! Please login.', 'success');
+                    
+                    // Switch to login form after delay
+                    setTimeout(() => {
+                        toggleAuthForm('login');
+                        document.getElementById('loginEmail').value = email;
+                    }, 1500);
+                } else {
+                    showMessage(result.message || '❌ Registration failed. Please try again.', 'error');
+                }
+            } catch (error) {
+                showMessage('❌ Network error. Please try again.', 'error');
+            } finally {
+                setButtonLoading(submitBtn, false);
+            }
+        });
+
+        // Set button loading state
+        function setButtonLoading(button, isLoading) {
+            const span = button.querySelector('span');
+            const loader = button.querySelector('.btn-loader');
+            
+            if (isLoading) {
+                button.disabled = true;
+                span.style.display = 'none';
+                loader.style.display = 'block';
+            } else {
+                button.disabled = false;
+                span.style.display = 'inline';
+                loader.style.display = 'none';
+            }
+        }
+    </script>
+</body>
+</html>
